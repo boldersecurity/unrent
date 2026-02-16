@@ -154,10 +154,15 @@
     .comparison-table th {
       background: var(--surface2); color: var(--text-dim); font-weight: 600;
       text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;
-      position: sticky; top: 0; z-index: 1;
+      position: sticky; top: 0; z-index: 2;
     }
     .comparison-table th:first-child, .comparison-table td:first-child { text-align: left; }
     .comparison-table tr:hover td { background: var(--surface2); }
+    .comparison-table .profile-name-row th {
+      position: sticky; top: 0; z-index: 3;
+      border-bottom: 2px solid var(--border);
+    }
+    .comparison-table .desc-row td { position: relative; }
     .positive { color: var(--green); }
     .negative { color: var(--red); }
 
@@ -293,6 +298,25 @@
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
       border: 5px solid transparent; border-top-color: var(--text);
     }
+
+    /* Collapse / expand buttons */
+    .collapse-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 4px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 16px; font-weight: 600;
+      cursor: pointer; line-height: 1; padding: 0;
+    }
+    .collapse-btn:hover { background: var(--surface2); }
+    .profile-collapse-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 3px;
+      border: 1px solid; background: transparent;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; line-height: 1; padding: 0; margin-left: 6px;
+      vertical-align: middle;
+    }
+    .profile-collapse-btn:hover { opacity: 0.8; }
 
     /* Cell detail toggle */
     .cell-detail-toggle {
@@ -469,12 +493,19 @@
   <div class="card">
     <div class="card-title" style="justify-content:space-between">
       <span>Year-by-Year Detail</span>
-      <div class="cell-detail-toggle">
-        <label for="cellDetailToggle">Show cell formulas</label>
-        <span class="switch">
-          <input type="checkbox" id="cellDetailToggle" checked onchange="toggleCellDetail(this.checked)">
-          <span class="slider"></span>
-        </span>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:13px;font-weight:500;color:var(--text-dim)">Columns</span>
+          <button class="collapse-btn" onclick="expandAllProfiles()" title="Expand all scenarios">+</button>
+          <button class="collapse-btn" onclick="collapseAllProfiles()" title="Collapse all scenarios">&minus;</button>
+        </div>
+        <div class="cell-detail-toggle">
+          <label for="cellDetailToggle">Show cell formulas</label>
+          <span class="switch">
+            <input type="checkbox" id="cellDetailToggle" checked onchange="toggleCellDetail(this.checked)">
+            <span class="slider"></span>
+          </span>
+        </div>
       </div>
     </div>
     <div class="table-scroll" style="max-height:600px">
@@ -496,6 +527,7 @@ let compareView = 'wealth_delta';
 let activeProfiles = new Set();
 let charts = {};
 let cellDetailMode = true;
+let collapsedProfiles = new Set();
 
 // Old dark theme colors for migration
 const OLD_COLORS = ['#6c8cff','#ff6c8c','#4ecb8d','#ffb347','#b47cff','#5ccfff','#ffd700','#ff5c5c'];
@@ -1126,6 +1158,24 @@ function toggleCellDetail(on) {
   }
 }
 
+// Collapse / expand profile columns
+function toggleCollapseProfile(profileId) {
+  if (collapsedProfiles.has(profileId)) collapsedProfiles.delete(profileId);
+  else collapsedProfiles.add(profileId);
+  renderComparison();
+}
+
+function collapseAllProfiles() {
+  const activeBPs = buyProfiles.filter(bp => activeProfiles.has(bp.id));
+  activeBPs.forEach(bp => collapsedProfiles.add(bp.id));
+  renderComparison();
+}
+
+function expandAllProfiles() {
+  collapsedProfiles.clear();
+  renderComparison();
+}
+
 // Cell popup logic
 function showCellPopup(e) {
   if (!cellDetailMode) return;
@@ -1359,21 +1409,44 @@ function renderComparison() {
   // Year-by-year table
   const activeBPs = buyProfiles.filter(bp => activeProfiles.has(bp.id));
 
-  // Build header row with tooltips
+  // Determine visible columns per profile
+  const visibleCols = {};
+  activeBPs.forEach(bp => {
+    visibleCols[bp.id] = collapsedProfiles.has(bp.id) ? ['wealthDelta'] : COL_ORDER;
+  });
+
   let tHtml = '<thead>';
+
+  // Profile name row (spanning each group)
+  tHtml += '<tr class="profile-name-row"><th style="background:var(--surface)"></th>';
+  activeBPs.forEach(bp => {
+    const cols = visibleCols[bp.id];
+    const isCollapsed = collapsedProfiles.has(bp.id);
+    const btnLabel = isCollapsed ? '+' : '&minus;';
+    const btnTitle = isCollapsed ? 'Expand columns' : 'Collapse columns';
+    tHtml += `<th colspan="${cols.length}" style="background:${bp.color}18;border-left:2px solid ${bp.color};color:${bp.color};font-size:13px;font-weight:700;text-align:center;padding:8px 12px;letter-spacing:0.3px">`;
+    tHtml += `${bp.name}`;
+    tHtml += `<button class="profile-collapse-btn" style="border-color:${bp.color}80;color:${bp.color}" onclick="toggleCollapseProfile('${bp.id}')" title="${btnTitle}">${btnLabel}</button>`;
+    tHtml += `</th>`;
+  });
+  tHtml += '</tr>';
+
   // Description row
   tHtml += '<tr class="desc-row"><td></td>';
   activeBPs.forEach(bp => {
-    COL_ORDER.forEach((col, ci) => {
+    const cols = visibleCols[bp.id];
+    cols.forEach((col, ci) => {
       const borderLeft = ci === 0 ? `border-left:2px solid ${bp.color};` : '';
       tHtml += `<td style="${borderLeft}background:${bp.color}0a">${COL_META[col].desc}</td>`;
     });
   });
   tHtml += '</tr>';
+
   // Main header row
   tHtml += '<tr><th>Year</th>';
   activeBPs.forEach(bp => {
-    COL_ORDER.forEach((col, ci) => {
+    const cols = visibleCols[bp.id];
+    cols.forEach((col, ci) => {
       const meta = COL_META[col];
       const textColor = (col === 'homeValue' || col === 'netHouseWealth') ? `color:${bp.color};` :
                         (col === 'renterPortfolio' || col === 'netRenterWealth') ? `color:${bp.renterColor};` : '';
@@ -1383,11 +1456,13 @@ function renderComparison() {
   });
   tHtml += '</tr></thead><tbody>';
 
+  // Data rows
   for (let y = 0; y < years; y++) {
     tHtml += `<tr><td><strong>${y + 1}</strong></td>`;
     activeBPs.forEach(bp => {
       const r = allCalcs[bp.id].rows[y];
-      COL_ORDER.forEach((col, ci) => {
+      const cols = visibleCols[bp.id];
+      cols.forEach((col, ci) => {
         const val = r[col];
         const deltaClass = col === 'wealthDelta' ? (val >= 0 ? 'positive' : 'negative') : '';
         const isBold = col === 'wealthDelta';
