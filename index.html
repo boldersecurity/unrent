@@ -323,7 +323,7 @@
   </div>
   <div class="header-controls">
     <div class="form-group" style="min-width:80px">
-      <label>Years</label>
+      <label># Years to Graph</label>
       <input type="number" id="forecastYears" value="30" min="1" max="50" onchange="recalcAll()">
     </div>
     <div class="form-group" style="min-width:100px">
@@ -431,7 +431,7 @@
       <div class="cell-detail-toggle">
         <label for="cellDetailToggle">Show cell formulas</label>
         <span class="switch">
-          <input type="checkbox" id="cellDetailToggle" onchange="toggleCellDetail(this.checked)">
+          <input type="checkbox" id="cellDetailToggle" checked onchange="toggleCellDetail(this.checked)">
           <span class="slider"></span>
         </span>
       </div>
@@ -1246,24 +1246,37 @@ function renderComparison() {
       ? `<span class="breakeven-badge positive">Buy wins at Year ${calc.breakevenYear}</span>`
       : `<span class="breakeven-badge negative">Rent wins for ${years}+ years</span>`;
 
+    // Year 10 delta (or last year if fewer than 10 years)
+    const yr10Idx = Math.min(9, calc.rows.length - 1);
+    const yr10Row = calc.rows[yr10Idx];
+    const yr10Label = yr10Idx + 1;
+
+    // Cumulative interest through year 10
+    let cumInterest10 = 0;
+    for (let i = 0; i <= yr10Idx; i++) cumInterest10 += calc.rows[i].interestPaid;
+
     summaryHtml += `
       <div class="summary-card" style="border-top: 3px solid ${bp.color}">
-        <div class="label">${bp.name}</div>
+        <div class="label">${bp.name} at Year ${years}</div>
         <div class="value" style="color:${last.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
           ${fmtFull(last.wealthDelta)}
         </div>
         <div class="sub">Wealth delta at Year ${years}</div>
         <div style="margin-top:8px">${beText}</div>
       </div>
-      <div class="summary-card">
-        <div class="label">${bp.name} Net House Wealth</div>
-        <div class="value" style="color:${bp.color}">${fmt(last.netHouseWealth)}</div>
-        <div class="sub">Home: ${fmt(last.homeValue)} | Mort: ${fmt(last.mortBalance)}</div>
+      <div class="summary-card" style="border-top: 3px solid ${bp.color}">
+        <div class="label">${bp.name} at Year ${yr10Label}</div>
+        <div class="value" style="color:${yr10Row.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
+          ${fmtFull(yr10Row.wealthDelta)}
+        </div>
+        <div class="sub">Wealth delta at Year ${yr10Label}</div>
       </div>
-      <div class="summary-card">
-        <div class="label">${bp.name} Renter Portfolio</div>
-        <div class="value" style="color:${bp.renterColor}">${fmt(last.netRenterWealth)}</div>
-        <div class="sub">Pre-tax: ${fmt(last.renterPortfolio)} | Tax: ${fmt(last.renterExitTax)}</div>
+      <div class="summary-card" style="border-top: 3px solid ${bp.color}">
+        <div class="label">${bp.name} Cumulative Interest</div>
+        <div class="value" style="color:var(--red)">
+          ${fmtFull(cumInterest10)}
+        </div>
+        <div class="sub">Interest paid through Year ${yr10Label}</div>
       </div>
     `;
   });
