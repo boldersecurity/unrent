@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rent vs Buy Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --surface: #ffffff;
+      --surface2: #ede7db;
+      --border: #d4cab8;
+      --text: #3b3228;
+      --text-dim: #8c7e6a;
+      --accent: #c67b3c;
+      --green: #6b8f5e;
+      --orange: #d4883e;
+      --purple: #7a6e5d;
+      --red: #c0513f;
+      --yellow: #c9a84c;
+      --teal: #5b8a7a;
+      --radius: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 1px 4px rgba(59,50,40,0.06);
+    }
+    .app-header h1 { font-size: 20px; font-weight: 600; }
+    .app-header .subtitle { font-size: 13px; color: var(--text-dim); }
+    .header-controls { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+
+    .tab-bar {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .tab-btn {
+      background: none; border: none; color: var(--text-dim);
+      padding: 12px 20px; font-size: 14px; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: 500;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-content { display: none; padding: 24px; max-width: 1600px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(59,50,40,0.05);
+    }
+    .card-title {
+      font-size: 16px; font-weight: 600; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .grid-5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+    @media (max-width: 1000px) { .grid-2,.grid-3,.grid-4,.grid-5 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { .grid-2,.grid-3,.grid-4,.grid-5 { grid-template-columns: 1fr; } }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label {
+      font-size: 11px; color: var(--text-dim); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .form-group input, .form-group select {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 12px; color: var(--text);
+      font-size: 14px; outline: none; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+    .form-group .unit { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+    button { cursor: pointer; font-size: 14px; font-weight: 500; border: none; border-radius: 6px; padding: 8px 16px; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    .profile-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(59,50,40,0.05);
+    }
+    .profile-card-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    .profile-card-actions { display: flex; gap: 6px; }
+
+    .chart-container { position: relative; height: 420px; margin: 16px 0; }
+
+    .comparison-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .comparison-table th, .comparison-table td {
+      padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th {
+      background: var(--surface2); color: var(--text-dim); font-weight: 600;
+      text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .comparison-table th:first-child, .comparison-table td:first-child { text-align: left; }
+    .comparison-table tr:hover td { background: var(--surface2); }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+
+    .summary-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .summary-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; text-align: center;
+      box-shadow: 0 1px 4px rgba(59,50,40,0.05);
+    }
+    .summary-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .summary-card .value { font-size: 22px; font-weight: 700; }
+    .summary-card .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+    .table-scroll { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+
+    .color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+    .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .toggle-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-dim); cursor: pointer; transition: all 0.2s;
+    }
+    .toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(198,123,60,0.1); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+    .empty-state h3 { margin-bottom: 8px; color: var(--text); }
+
+    .inline-flex { display: flex; align-items: center; gap: 8px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+    .profile-name-input {
+      background: transparent; border: none; color: var(--text);
+      font-size: 15px; font-weight: 600; outline: none;
+      border-bottom: 1px solid transparent; padding: 2px 0;
+    }
+    .profile-name-input:focus { border-bottom-color: var(--accent); }
+
+    .scenario-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600;
+    }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .info-text { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+
+    .tabs-sub {
+      display: flex; gap: 4px; background: var(--surface2);
+      border-radius: 6px; padding: 3px; margin-bottom: 16px;
+    }
+    .tabs-sub button {
+      border-radius: 4px; padding: 6px 14px; font-size: 12px;
+      background: transparent; border: none; color: var(--text-dim); cursor: pointer;
+    }
+    .tabs-sub button.active { background: var(--accent); color: white; }
+
+    .section-label {
+      font-size: 12px; font-weight: 600; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px; margin-top: 4px;
+    }
+
+    /* Section groups for buy profiles */
+    .section-group {
+      border-left: 4px solid var(--border);
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .section-group--purchase { border-left-color: #c67b3c; background: rgba(198,123,60,0.04); }
+    .section-group--purchase .section-label { color: #c67b3c; }
+    .section-group--closing { border-left-color: #c9a84c; background: rgba(201,168,76,0.04); }
+    .section-group--closing .section-label { color: #c9a84c; }
+    .section-group--ongoing { border-left-color: #5b8a7a; background: rgba(91,138,122,0.04); }
+    .section-group--ongoing .section-label { color: #5b8a7a; }
+    .section-group--exit { border-left-color: #6b8f5e; background: rgba(107,143,94,0.04); }
+    .section-group--exit .section-label { color: #6b8f5e; }
+
+    .breakeven-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 16px;
+      font-size: 12px; font-weight: 600;
+    }
+    .breakeven-badge.positive { background: rgba(107,143,94,0.15); color: var(--green); }
+    .breakeven-badge.negative { background: rgba(192,81,63,0.15); color: var(--red); }
+    .breakeven-badge.neutral { background: rgba(140,126,106,0.15); color: var(--text-dim); }
+
+    .save-bar {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .save-bar button {
+      padding: 5px 12px; font-size: 12px; border-radius: 5px;
+    }
+    .save-indicator {
+      font-size: 11px; color: var(--text-dim); white-space: nowrap;
+    }
+    .save-indicator.saved { color: var(--green); }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 20px; font-size: 13px;
+      color: var(--text); z-index: 999; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none; box-shadow: 0 4px 16px rgba(59,50,40,0.12);
+    }
+    .toast.show { opacity: 1; }
+
+    /* Column description row */
+    .comparison-table .desc-row td {
+      font-size: 10px; color: var(--text-dim); font-style: italic;
+      padding: 4px 12px; border-bottom: 1px solid var(--border);
+      background: var(--surface); font-weight: 400; text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Header tooltips */
+    .comparison-table th.has-tooltip {
+      position: relative; cursor: help;
+    }
+    .comparison-table th.has-tooltip:hover .header-tooltip {
+      display: block;
+    }
+    .header-tooltip {
+      display: none;
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: var(--bg); padding: 8px 12px;
+      border-radius: 6px; font-size: 11px; font-weight: 400;
+      text-transform: none; letter-spacing: 0; white-space: nowrap;
+      z-index: 20; pointer-events: none;
+      box-shadow: 0 2px 8px rgba(59,50,40,0.2);
+    }
+    .header-tooltip::after {
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent; border-top-color: var(--text);
+    }
+
+    /* Cell detail toggle */
+    .cell-detail-toggle {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .cell-detail-toggle label {
+      font-size: 13px; font-weight: 500; color: var(--text-dim); cursor: pointer;
+    }
+    .switch {
+      position: relative; display: inline-block; width: 36px; height: 20px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--border); border-radius: 20px; transition: 0.2s; cursor: pointer;
+    }
+    .switch .slider::before {
+      content: ''; position: absolute; height: 14px; width: 14px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s;
+    }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
+
+    /* Cell formula popup */
+    .cell-popup {
+      display: none; position: fixed; z-index: 100;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 18px; min-width: 280px; max-width: 420px;
+      box-shadow: 0 8px 32px rgba(59,50,40,0.18);
+      font-size: 12px; line-height: 1.6;
+    }
+    .cell-popup.visible { display: block; }
+    .cell-popup .popup-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 2px;
+    }
+    .cell-popup .popup-formula {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: var(--surface2); padding: 6px 10px; border-radius: 4px;
+      margin-bottom: 8px; font-size: 11px; color: var(--accent);
+      word-break: break-all;
+    }
+    .cell-popup .popup-values {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: var(--surface2); padding: 6px 10px; border-radius: 4px;
+      margin-bottom: 8px; font-size: 11px; color: var(--teal);
+      word-break: break-all;
+    }
+    .cell-popup .popup-result {
+      font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text);
+    }
+    .cell-popup .popup-explain {
+      font-size: 11px; color: var(--text-dim); font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <div>
+    <h1>Rent vs Buy Financial Analysis</h1>
+    <div class="subtitle">Compare renting + investing vs buying for each home scenario</div>
+  </div>
+  <div class="header-controls">
+    <div class="form-group" style="min-width:80px">
+      <label>Years</label>
+      <input type="number" id="forecastYears" value="30" min="1" max="50" onchange="recalcAll()">
+    </div>
+    <div class="form-group" style="min-width:100px">
+      <label>Federal Tax Rate</label>
+      <input type="number" id="federalTaxRate" value="37" step="1" onchange="recalcAll()">
+    </div>
+    <div class="form-group" style="min-width:110px">
+      <label>Investment Return</label>
+      <input type="number" id="investReturn" value="4" step="0.5" onchange="recalcAll()">
+      <span class="unit">% / year</span>
+    </div>
+    <div class="form-group" style="min-width:110px">
+      <label>Cap Gains Rate</label>
+      <input type="number" id="capGainsRate" value="38.6" step="0.5" onchange="recalcAll()">
+      <span class="unit">% on investments</span>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar" style="justify-content:space-between">
+  <div style="display:flex">
+    <button class="tab-btn active" data-tab="rent" onclick="switchTab('rent')">Rent Scenario</button>
+    <button class="tab-btn" data-tab="buy" onclick="switchTab('buy')">Buy Profiles</button>
+    <button class="tab-btn" data-tab="compare" onclick="switchTab('compare')">Comparison</button>
+  </div>
+  <div class="save-bar" style="padding-right:12px">
+    <span id="saveIndicator" class="save-indicator"></span>
+    <button class="btn-outline btn-sm" onclick="exportJSON()" title="Download all settings as JSON">Export</button>
+    <button class="btn-outline btn-sm" onclick="$('importInput').click()" title="Load settings from JSON file">Import</button>
+    <button class="btn-outline btn-sm" onclick="resetAll()" title="Clear saved data and reset to defaults" style="color:var(--red);border-color:var(--red)">Reset</button>
+    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- RENT TAB -->
+<div id="tab-rent" class="tab-content active">
+  <div class="card">
+    <div class="card-title">Rent Scenario Configuration</div>
+    <div class="grid grid-4">
+      <div class="form-group">
+        <label>Monthly Rent</label>
+        <input type="number" id="rentMonthly" value="7050" step="50" onchange="recalcAll()">
+        <span class="unit">$/month</span>
+      </div>
+      <div class="form-group">
+        <label>Annual Rent Increase</label>
+        <input type="number" id="rentGrowth" value="5" step="0.5" onchange="recalcAll()">
+        <span class="unit">% per year</span>
+      </div>
+      <div class="form-group">
+        <label>Renter's Insurance</label>
+        <input type="number" id="renterInsurance" value="0" step="10" onchange="recalcAll()">
+        <span class="unit">$/month</span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Rent Forecast</div>
+    <div class="chart-container"><canvas id="rentChart"></canvas></div>
+    <div class="table-scroll" style="max-height:300px">
+      <table class="comparison-table" id="rentTable"></table>
+    </div>
+  </div>
+</div>
+
+<!-- BUY TAB -->
+<div id="tab-buy" class="tab-content">
+  <div class="flex-between" style="margin-bottom:16px">
+    <h2 style="font-size:18px">Home Purchase Profiles</h2>
+    <button class="btn-primary" onclick="addBuyProfile()">+ Add Profile</button>
+  </div>
+  <div id="buyProfilesList"></div>
+</div>
+
+<!-- COMPARISON TAB -->
+<div id="tab-compare" class="tab-content">
+  <div class="card">
+    <div class="card-title">Scenario Selection</div>
+    <p class="info-text" style="margin-bottom:12px">
+      Each buy profile is compared against the renter scenario. The renter invests the down payment + closing costs
+      and redirects the annual cash flow difference (buy outlay minus rent) into the portfolio.
+    </p>
+    <div class="toggle-group" id="compareToggles"></div>
+  </div>
+
+  <div class="summary-cards" id="compareSummary"></div>
+
+  <div class="card">
+    <div class="card-title">Wealth Over Time</div>
+    <div class="tabs-sub" id="compareChartTabs">
+      <button class="active" onclick="setCompareView('wealth_delta', this)">Wealth Delta (Buy - Rent)</button>
+      <button onclick="setCompareView('net_house', this)">Net House Wealth</button>
+      <button onclick="setCompareView('net_renter', this)">Net Renter Wealth</button>
+      <button onclick="setCompareView('both', this)">Both Overlaid</button>
+      <button onclick="setCompareView('monthly', this)">Monthly Outflow</button>
+    </div>
+    <div class="chart-container" style="height:450px"><canvas id="compareChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span>Year-by-Year Detail</span>
+      <div class="cell-detail-toggle">
+        <label for="cellDetailToggle">Show cell formulas</label>
+        <span class="switch">
+          <input type="checkbox" id="cellDetailToggle" onchange="toggleCellDetail(this.checked)">
+          <span class="slider"></span>
+        </span>
+      </div>
+    </div>
+    <div class="table-scroll" style="max-height:600px">
+      <table class="comparison-table" id="compareTable"></table>
+    </div>
+  </div>
+</div>
+
+<!-- Cell formula popup -->
+<div class="cell-popup" id="cellPopup"></div>
+
+<script>
+// ========== STATE ==========
+let buyProfiles = [];
+let profileCounter = 0;
+const COLORS = ['#c67b3c','#c0513f','#6b8f5e','#c9a84c','#5b8a7a','#7a6e5d','#d4883e','#8b5e3c'];
+const RENTER_COLORS = ['#daa06d','#d4897a','#98b88e','#dfc57a','#89b5a5','#a69a8a','#e0b06d','#b08c6e'];
+let compareView = 'wealth_delta';
+let activeProfiles = new Set();
+let charts = {};
+let cellDetailMode = true;
+
+// Old dark theme colors for migration
+const OLD_COLORS = ['#6c8cff','#ff6c8c','#4ecb8d','#ffb347','#b47cff','#5ccfff','#ffd700','#ff5c5c'];
+const OLD_RENTER_COLORS = ['#a0b4ff','#ffb0c4','#8de5be','#ffd080','#d0aaff','#90e4ff','#ffe766','#ff9090'];
+
+// ========== UTILS ==========
+const $ = id => document.getElementById(id);
+const val = id => parseFloat($(id)?.value) || 0;
+const fmt = n => {
+  const neg = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  if (a >= 1e6) return neg + '$' + (a / 1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return neg + '$' + (a / 1e3).toFixed(1) + 'K';
+  return neg + '$' + a.toFixed(0);
+};
+const fmtFull = n => (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+const pct = n => (n >= 0 ? '' : '') + n.toFixed(2) + '%';
+
+// ========== TAB SWITCHING ==========
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('tab-' + tab).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'compare') recalcAll();
+}
+
+// ========== RENT CALCULATIONS ==========
+function calcRent() {
+  const years = val('forecastYears');
+  const monthly = val('rentMonthly');
+  const growth = val('rentGrowth') / 100;
+  const insurance = val('renterInsurance');
+  const data = [];
+  for (let y = 1; y <= years; y++) {
+    const rentThisYear = monthly * Math.pow(1 + growth, y - 1);
+    const annualRent = rentThisYear * 12;
+    const annualInsurance = insurance * 12;
+    data.push({ year: y, monthlyRent: rentThisYear, annualRent, annualInsurance, annualTotal: annualRent + annualInsurance });
+  }
+  return data;
+}
+
+function renderRent() {
+  const data = calcRent();
+  const labels = data.map(d => 'Year ' + d.year);
+  let cumulative = 0;
+  const cumData = data.map(d => { cumulative += d.annualTotal; return cumulative; });
+
+  if (charts.rent) charts.rent.destroy();
+  charts.rent = new Chart($('rentChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Annual Rent',
+        data: data.map(d => d.annualRent),
+        backgroundColor: 'rgba(198,123,60,0.7)',
+        borderRadius: 3,
+      }, {
+        label: 'Cumulative',
+        data: cumData,
+        type: 'line',
+        borderColor: '#6b8f5e',
+        backgroundColor: 'transparent',
+        yAxisID: 'y1',
+        pointRadius: 2,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8c7e6a' } } },
+      scales: {
+        x: { ticks: { color: '#8c7e6a' }, grid: { color: '#d4cab8' } },
+        y: { ticks: { color: '#8c7e6a', callback: v => fmt(v) }, grid: { color: '#d4cab8' } },
+        y1: { position: 'right', ticks: { color: '#6b8f5e', callback: v => fmt(v) }, grid: { display: false } }
+      }
+    }
+  });
+
+  let cum = 0;
+  let html = '<thead><tr><th>Year</th><th>Monthly Rent</th><th>Annual Rent</th><th>Insurance</th><th>Annual Total</th><th>Cumulative</th></tr></thead><tbody>';
+  data.forEach(d => {
+    cum += d.annualTotal;
+    html += `<tr><td>${d.year}</td><td>${fmtFull(d.monthlyRent)}</td><td>${fmtFull(d.annualRent)}</td><td>${fmtFull(d.annualInsurance)}</td><td>${fmtFull(d.annualTotal)}</td><td>${fmtFull(cum)}</td></tr>`;
+  });
+  $('rentTable').innerHTML = html + '</tbody>';
+}
+
+// ========== BUY PROFILE ==========
+function addBuyProfile() {
+  profileCounter++;
+  const id = 'buy_' + profileCounter;
+  buyProfiles.push({
+    id,
+    name: 'Home ' + profileCounter,
+    purchasePrice: 1850000,
+    downPaymentPct: 20,
+    interestRate: 6.3,
+    mortgageTerm: 30,
+    homeAppreciation: 2,
+    hoaInsuranceMonthly: 919,
+    annualPropertyTax: 2093,
+    propTaxGrowth: 2,
+    // Buying closing costs (itemized)
+    mansionTaxPct: 1,
+    mortgageRecordingTaxPct: 1.925,
+    titleInsurancePct: 0.6,
+    realEstateAttorneyFee: 5000,
+    bankAttorneyFee: 1000,
+    lenderFee: 1500,
+    recordingFee: 750,
+    // Selling costs (itemized)
+    sellerCommissionPct: 5,
+    transferTaxPct: 1.825,
+    capitalGainsExclusion: 500000,
+    maintenancePct: 0,
+    color: COLORS[(profileCounter - 1) % COLORS.length],
+    renterColor: RENTER_COLORS[(profileCounter - 1) % RENTER_COLORS.length],
+    expanded: true
+  });
+  activeProfiles.add(id);
+  renderBuyProfiles();
+  recalcAll();
+}
+
+function removeBuyProfile(id) {
+  buyProfiles = buyProfiles.filter(p => p.id !== id);
+  activeProfiles.delete(id);
+  renderBuyProfiles();
+  recalcAll();
+}
+
+function updateProfile(id, field, value) {
+  const p = buyProfiles.find(p => p.id === id);
+  if (p) {
+    p[field] = (field === 'name') ? value : parseFloat(value) || 0;
+    renderBuyProfiles();
+    recalcAll();
+  }
+}
+
+function toggleProfileExpand(id) {
+  const p = buyProfiles.find(p => p.id === id);
+  if (p) { p.expanded = !p.expanded; renderBuyProfiles(); }
+}
+
+// Auto-calculate buying closing costs from itemized breakdown
+function getBuyingClosingCosts(p) {
+  const price = p.purchasePrice;
+  return {
+    mansionTax: price * p.mansionTaxPct / 100,
+    mortgageRecordingTax: price * p.mortgageRecordingTaxPct / 100,
+    titleInsurance: price * p.titleInsurancePct / 100,
+    realEstateAttorneyFee: p.realEstateAttorneyFee,
+    bankAttorneyFee: p.bankAttorneyFee,
+    lenderFee: p.lenderFee,
+    recordingFee: p.recordingFee,
+    get total() {
+      return this.mansionTax + this.mortgageRecordingTax + this.titleInsurance
+        + this.realEstateAttorneyFee + this.bankAttorneyFee + this.lenderFee + this.recordingFee;
+    }
+  };
+}
+
+// Auto-calculate selling costs from itemized breakdown
+function getSellingCostPct(p) {
+  return p.sellerCommissionPct + p.transferTaxPct;
+}
+
+function renderBuyProfiles() {
+  const list = $('buyProfilesList');
+  if (buyProfiles.length === 0) {
+    list.innerHTML = '<div class="empty-state"><h3>No purchase profiles yet</h3><p>Click "+ Add Profile" to create a home purchase scenario</p></div>';
+    return;
+  }
+  list.innerHTML = buyProfiles.map(p => {
+    const downPmt = p.purchasePrice * p.downPaymentPct / 100;
+    const loanAmt = p.purchasePrice - downPmt;
+    const mr = p.interestRate / 100 / 12;
+    const np = p.mortgageTerm * 12;
+    const monthlyPI = mr > 0 ? loanAmt * (mr * Math.pow(1 + mr, np)) / (Math.pow(1 + mr, np) - 1) : loanAmt / np;
+    const cc = getBuyingClosingCosts(p);
+    const sellPct = getSellingCostPct(p);
+    return `
+    <div class="profile-card" style="border-left: 3px solid ${p.color}">
+      <div class="profile-card-header">
+        <div class="inline-flex">
+          <input class="profile-name-input" value="${p.name}" onchange="updateProfile('${p.id}','name',this.value)">
+          <span class="scenario-tag" style="background:${p.color}22;color:${p.color}">${fmtFull(p.purchasePrice)}</span>
+          <span class="scenario-tag" style="background:${p.color}11;color:var(--text-dim)">P&I: ${fmtFull(monthlyPI)}/mo</span>
+          <span class="scenario-tag" style="background:var(--surface2);color:var(--text-dim)">Closing: ${fmtFull(cc.total)} (${(cc.total / p.purchasePrice * 100).toFixed(1)}%)</span>
+        </div>
+        <div class="profile-card-actions">
+          <button class="btn-outline btn-sm" onclick="toggleProfileExpand('${p.id}')">${p.expanded ? 'Collapse' : 'Expand'}</button>
+          <button class="btn-danger btn-sm" onclick="removeBuyProfile('${p.id}')">Remove</button>
+        </div>
+      </div>
+      ${p.expanded ? `
+      <div class="section-group section-group--purchase">
+        <div class="section-label">Purchase</div>
+        <div class="grid grid-5">
+          <div class="form-group">
+            <label>Purchase Price</label>
+            <input type="number" value="${p.purchasePrice}" step="10000" onchange="updateProfile('${p.id}','purchasePrice',this.value)">
+          </div>
+          <div class="form-group">
+            <label>Down Payment</label>
+            <input type="number" value="${p.downPaymentPct}" step="1" onchange="updateProfile('${p.id}','downPaymentPct',this.value)">
+            <span class="unit">${p.downPaymentPct}% = ${fmtFull(downPmt)}</span>
+          </div>
+          <div class="form-group">
+            <label>Interest Rate</label>
+            <input type="number" value="${p.interestRate}" step="0.125" onchange="updateProfile('${p.id}','interestRate',this.value)">
+            <span class="unit">% fixed</span>
+          </div>
+          <div class="form-group">
+            <label>Mortgage Term</label>
+            <input type="number" value="${p.mortgageTerm}" step="5" onchange="updateProfile('${p.id}','mortgageTerm',this.value)">
+            <span class="unit">years</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-group section-group--closing">
+        <div class="section-label">Buying Closing Costs <span style="float:right;color:var(--text);font-weight:700">${fmtFull(cc.total)} <span style="color:var(--text-dim);font-weight:400">(${(cc.total / p.purchasePrice * 100).toFixed(2)}% of price)</span></span></div>
+        <div class="grid grid-4" style="margin-bottom:8px">
+          <div class="form-group">
+            <label>Mansion Tax</label>
+            <input type="number" value="${p.mansionTaxPct}" step="0.1" onchange="updateProfile('${p.id}','mansionTaxPct',this.value)">
+            <span class="unit">${p.mansionTaxPct}% = ${fmtFull(cc.mansionTax)}</span>
+          </div>
+          <div class="form-group">
+            <label>Mortgage Recording Tax</label>
+            <input type="number" value="${p.mortgageRecordingTaxPct}" step="0.1" onchange="updateProfile('${p.id}','mortgageRecordingTaxPct',this.value)">
+            <span class="unit">${p.mortgageRecordingTaxPct}% = ${fmtFull(cc.mortgageRecordingTax)}</span>
+          </div>
+          <div class="form-group">
+            <label>Title Insurance</label>
+            <input type="number" value="${p.titleInsurancePct}" step="0.1" onchange="updateProfile('${p.id}','titleInsurancePct',this.value)">
+            <span class="unit">${p.titleInsurancePct}% = ${fmtFull(cc.titleInsurance)}</span>
+          </div>
+          <div class="form-group">
+            <label>RE Attorney Fee</label>
+            <input type="number" value="${p.realEstateAttorneyFee}" step="500" onchange="updateProfile('${p.id}','realEstateAttorneyFee',this.value)">
+            <span class="unit">$ flat</span>
+          </div>
+        </div>
+        <div class="grid grid-4">
+          <div class="form-group">
+            <label>Bank Attorney Fee</label>
+            <input type="number" value="${p.bankAttorneyFee}" step="250" onchange="updateProfile('${p.id}','bankAttorneyFee',this.value)">
+            <span class="unit">$ flat</span>
+          </div>
+          <div class="form-group">
+            <label>Lender Fees</label>
+            <input type="number" value="${p.lenderFee}" step="250" onchange="updateProfile('${p.id}','lenderFee',this.value)">
+            <span class="unit">$ (appraisal, credit, app)</span>
+          </div>
+          <div class="form-group">
+            <label>Recording Fees</label>
+            <input type="number" value="${p.recordingFee}" step="250" onchange="updateProfile('${p.id}','recordingFee',this.value)">
+            <span class="unit">$ (deed/mortgage filing)</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-group section-group--ongoing">
+        <div class="section-label">Ongoing Costs</div>
+        <div class="grid grid-5">
+          <div class="form-group">
+            <label>Monthly HOA + Insurance</label>
+            <input type="number" value="${p.hoaInsuranceMonthly}" step="25" onchange="updateProfile('${p.id}','hoaInsuranceMonthly',this.value)">
+            <span class="unit">$/month</span>
+          </div>
+          <div class="form-group">
+            <label>Annual Property Tax</label>
+            <input type="number" value="${p.annualPropertyTax}" step="100" onchange="updateProfile('${p.id}','annualPropertyTax',this.value)">
+            <span class="unit">$/year (monthly: ${fmtFull(p.annualPropertyTax / 12)})</span>
+          </div>
+          <div class="form-group">
+            <label>Prop Tax Growth</label>
+            <input type="number" value="${p.propTaxGrowth}" step="0.5" onchange="updateProfile('${p.id}','propTaxGrowth',this.value)">
+            <span class="unit">% / year</span>
+          </div>
+          <div class="form-group">
+            <label>Maintenance</label>
+            <input type="number" value="${p.maintenancePct}" step="0.25" onchange="updateProfile('${p.id}','maintenancePct',this.value)">
+            <span class="unit">% of home value / year</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-group section-group--exit">
+        <div class="section-label">Appreciation & Exit <span style="float:right;color:var(--text);font-weight:700">Sell cost: ${sellPct.toFixed(3)}%</span></div>
+        <div class="grid grid-5">
+          <div class="form-group">
+            <label>Home Appreciation</label>
+            <input type="number" value="${p.homeAppreciation}" step="0.5" onchange="updateProfile('${p.id}','homeAppreciation',this.value)">
+            <span class="unit">% / year</span>
+          </div>
+          <div class="form-group">
+            <label>Seller Commission</label>
+            <input type="number" value="${p.sellerCommissionPct}" step="0.5" onchange="updateProfile('${p.id}','sellerCommissionPct',this.value)">
+            <span class="unit">% of sale price</span>
+          </div>
+          <div class="form-group">
+            <label>Transfer Tax (NYS+NYC)</label>
+            <input type="number" value="${p.transferTaxPct}" step="0.1" onchange="updateProfile('${p.id}','transferTaxPct',this.value)">
+            <span class="unit">% of sale price</span>
+          </div>
+          <div class="form-group">
+            <label>Home Cap Gains Exclusion</label>
+            <input type="number" value="${p.capitalGainsExclusion}" step="50000" onchange="updateProfile('${p.id}','capitalGainsExclusion',this.value)">
+            <span class="unit">$ (married: $500K)</span>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ========== CORE CALCULATION: Matches forecastv3a exactly ==========
+// For each buy profile, compute year-by-year:
+//   Buy side: home value, mortgage balance, interest, tax shield, buy outlay
+//   Rent side: annual rent, renter portfolio (investing down+closing+cashflow diff), exit tax
+//   Comparison: net house wealth, net renter wealth, wealth delta
+
+function calcProfile(p) {
+  const years = val('forecastYears');
+  const fedTaxRate = val('federalTaxRate') / 100;
+  const investGrowth = val('investReturn') / 100;
+  const capGainsRate = val('capGainsRate') / 100;
+  const rentData = calcRent();
+
+  const price = p.purchasePrice;
+  const downPmt = price * p.downPaymentPct / 100;
+  const closingCosts = getBuyingClosingCosts(p).total;
+  const sellingCostPct = getSellingCostPct(p) / 100;
+  const loanAmount = price - downPmt;
+  const monthlyRate = p.interestRate / 100 / 12;
+  const totalPayments = p.mortgageTerm * 12;
+  const capitalGainsExcl = p.capitalGainsExclusion;
+
+  // Monthly P&I (PMT formula)
+  const monthlyPI = monthlyRate > 0
+    ? loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1)
+    : loanAmount / totalPayments;
+
+  // Mortgage interest deduction cap ($750K of debt)
+  const deductionCap = Math.min(1, 750000 / loanAmount);
+
+  const rows = [];
+  let renterPortfolio = 0;
+  let cumInvested = 0;
+
+  for (let y = 1; y <= years; y++) {
+    // --- HOME VALUE ---
+    const homeValue = price * Math.pow(1 + p.homeAppreciation / 100, y);
+
+    // --- MORTGAGE BALANCE (PV of remaining payments) ---
+    const remainingPayments = Math.max(0, totalPayments - y * 12);
+    let mortBalance = 0;
+    if (remainingPayments > 0 && monthlyRate > 0) {
+      mortBalance = monthlyPI * (1 - Math.pow(1 + monthlyRate, -remainingPayments)) / monthlyRate;
+    }
+
+    // --- INTEREST PAID THIS YEAR (CUMIPMT for this year's 12 months) ---
+    let interestPaid = 0;
+    const startMonth = (y - 1) * 12 + 1;
+    const endMonth = y * 12;
+    if (startMonth <= totalPayments) {
+      // Calculate cumulative interest for months startMonth..endMonth
+      let bal = loanAmount;
+      // Fast-forward balance to start of this year
+      if (y > 1) {
+        const prevRemaining = totalPayments - (y - 1) * 12;
+        if (prevRemaining > 0 && monthlyRate > 0) {
+          bal = monthlyPI * (1 - Math.pow(1 + monthlyRate, -prevRemaining)) / monthlyRate;
+        } else {
+          bal = 0;
+        }
+      }
+      for (let m = startMonth; m <= Math.min(endMonth, totalPayments); m++) {
+        const intPmt = bal * monthlyRate;
+        const prinPmt = monthlyPI - intPmt;
+        interestPaid += intPmt;
+        bal -= prinPmt;
+        if (bal < 0) bal = 0;
+      }
+    }
+
+    // --- TAX SHIELD: interest deduction * cap * federal rate ---
+    const taxShield = interestPaid * deductionCap * fedTaxRate;
+
+    // --- BUY OUTLAY (NET): P&I + property tax + HOA/ins + maintenance - tax shield ---
+    const piThisYear = Math.min(12, Math.max(0, totalPayments - (y - 1) * 12));
+    const actualPI = monthlyPI * piThisYear;
+
+    const propTax = p.annualPropertyTax * Math.pow(1 + p.propTaxGrowth / 100, y - 1);
+    const hoaIns = p.hoaInsuranceMonthly * 12;
+    const maintenance = (price * Math.pow(1 + p.homeAppreciation / 100, y - 1)) * (p.maintenancePct / 100);
+    const buyOutlay = actualPI + propTax + hoaIns + maintenance - taxShield;
+
+    // --- ANNUAL RENT ---
+    const annualRent = rentData[y - 1] ? rentData[y - 1].annualTotal : 0;
+
+    // --- NET HOUSE WEALTH ---
+    const netSaleProceeds = homeValue * (1 - sellingCostPct);
+    const homeGain = netSaleProceeds - (price + closingCosts) - capitalGainsExcl;
+    const homeCapGainsTax = Math.max(0, homeGain * capGainsRate);
+    const netHouseWealth = netSaleProceeds - mortBalance - homeCapGainsTax;
+
+    // --- RENTER PORTFOLIO ---
+    const cashFlowDelta = buyOutlay - annualRent;
+    if (y === 1) {
+      renterPortfolio = (downPmt + closingCosts) * (1 + investGrowth) + cashFlowDelta;
+      cumInvested = (downPmt + closingCosts) + cashFlowDelta;
+    } else {
+      renterPortfolio = renterPortfolio * (1 + investGrowth) + cashFlowDelta;
+      cumInvested = cumInvested + cashFlowDelta;
+    }
+
+    // --- RENTER EXIT TAX ---
+    const renterGain = renterPortfolio - cumInvested;
+    const renterExitTax = Math.max(0, renterGain * capGainsRate);
+
+    // --- NET RENTER WEALTH ---
+    const netRenterWealth = renterPortfolio - renterExitTax;
+
+    // --- WEALTH DELTA (positive = buying wins) ---
+    const wealthDelta = netHouseWealth - netRenterWealth;
+
+    rows.push({
+      year: y,
+      homeValue,
+      mortBalance,
+      interestPaid,
+      taxShield,
+      buyOutlay,
+      annualRent,
+      netHouseWealth,
+      renterPortfolio,
+      cumInvested,
+      renterExitTax,
+      netRenterWealth,
+      wealthDelta,
+      cashFlowDelta,
+      propTax,
+      hoaIns,
+      maintenance,
+      actualPI,
+      homeCapGainsTax,
+      monthlyBuy: buyOutlay / 12,
+      monthlyRent: annualRent / 12,
+      // Store intermediate values for formula display
+      _price: price,
+      _downPmt: downPmt,
+      _closingCosts: closingCosts,
+      _sellingCostPct: sellingCostPct,
+      _netSaleProceeds: netSaleProceeds,
+      _homeGain: homeGain,
+      _capitalGainsExcl: capitalGainsExcl,
+      _capGainsRate: capGainsRate,
+      _deductionCap: deductionCap,
+      _fedTaxRate: fedTaxRate,
+      _investGrowth: investGrowth,
+      _appreciation: p.homeAppreciation / 100
+    });
+  }
+
+  // Find breakeven year
+  let breakevenYear = null;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].wealthDelta >= 0) {
+      breakevenYear = rows[i].year;
+      break;
+    }
+  }
+
+  return { rows, downPmt, closingCosts, loanAmount, monthlyPI, breakevenYear };
+}
+
+// ========== COMPARISON ==========
+function renderCompareToggles() {
+  let html = '';
+  buyProfiles.forEach(p => {
+    const active = activeProfiles.has(p.id);
+    html += `<button class="toggle-btn ${active ? 'active' : ''}" onclick="toggleProfile('${p.id}')" style="border-color:${active ? p.color : ''}"><span class="color-dot" style="background:${p.color}"></span>${p.name}</button>`;
+  });
+  if (buyProfiles.length === 0) {
+    html = '<span class="info-text">Add buy profiles first to see comparisons.</span>';
+  }
+  $('compareToggles').innerHTML = html;
+}
+
+function toggleProfile(id) {
+  if (activeProfiles.has(id)) activeProfiles.delete(id);
+  else activeProfiles.add(id);
+  renderComparison();
+}
+
+function setCompareView(view, btn) {
+  compareView = view;
+  document.querySelectorAll('#compareChartTabs button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderComparison();
+}
+
+// Column meta for descriptions, tooltips, formulas
+const COL_META = {
+  homeValue: {
+    header: 'Home Value',
+    desc: 'Appreciated value',
+    tooltip: 'Price × (1 + appreciation%)^year',
+    formula: (r) => `Price × (1 + appreciation%)^${r.year}`,
+    values: (r) => `${fmtFull(r._price)} × (1 + ${(r._appreciation*100).toFixed(1)}%)^${r.year}`,
+    explain: 'Market value of the home after annual appreciation'
+  },
+  mortBalance: {
+    header: 'Mort. Bal.',
+    desc: 'Remaining loan',
+    tooltip: 'PV(rate, remainingMonths, -PMT)',
+    formula: (r) => `PV(monthlyRate, remainingMonths, -monthlyPMT)`,
+    values: (r) => `PV of ${fmtFull(r.mortBalance)} remaining`,
+    explain: 'Outstanding mortgage principal — what you still owe the bank'
+  },
+  interestPaid: {
+    header: 'Interest',
+    desc: 'Interest this year',
+    tooltip: 'CUMIPMT(rate, nper, pv, startMonth, endMonth)',
+    formula: (r) => `Sum of monthly interest for months ${(r.year-1)*12+1}–${r.year*12}`,
+    values: (r) => `= ${fmtFull(r.interestPaid)}`,
+    explain: 'Total mortgage interest paid during this year'
+  },
+  taxShield: {
+    header: 'Tax Shield',
+    desc: 'Tax savings on interest',
+    tooltip: 'Interest × min(1, $750K/loan) × fedTaxRate',
+    formula: (r) => `Interest × deductionCap × fedTaxRate`,
+    values: (r) => `${fmtFull(r.interestPaid)} × ${(r._deductionCap*100).toFixed(1)}% × ${(r._fedTaxRate*100).toFixed(0)}%`,
+    explain: 'Federal tax savings from deducting mortgage interest (capped at $750K of debt)'
+  },
+  buyOutlay: {
+    header: 'Buy Outlay',
+    desc: 'Net annual cost',
+    tooltip: 'P&I + PropTax + HOA/Ins + Maint − TaxShield',
+    formula: (r) => `P&I + PropTax + HOA/Ins + Maintenance − TaxShield`,
+    values: (r) => `${fmtFull(r.actualPI)} + ${fmtFull(r.propTax)} + ${fmtFull(r.hoaIns)} + ${fmtFull(r.maintenance)} − ${fmtFull(r.taxShield)}`,
+    explain: 'Total annual out-of-pocket cost of owning (after tax benefit)'
+  },
+  annualRent: {
+    header: 'Ann. Rent',
+    desc: 'Rent + insurance',
+    tooltip: 'MonthlyRent × (1 + growth%)^(year-1) × 12 + Insurance',
+    formula: (r) => `Monthly × (1 + growth%)^(year−1) × 12 + Insurance`,
+    values: (r) => `= ${fmtFull(r.annualRent)}`,
+    explain: 'Total annual rent plus renter\'s insurance'
+  },
+  netHouseWealth: {
+    header: 'Net House',
+    desc: 'Equity if sold today',
+    tooltip: 'HomeValue × (1 − sellCost%) − MortBal − CapGainsTax',
+    formula: (r) => `HomeValue × (1 − sellCost%) − MortBal − CapGainsTax`,
+    values: (r) => `${fmtFull(r.homeValue)} × (1 − ${(r._sellingCostPct*100).toFixed(2)}%) − ${fmtFull(r.mortBalance)} − ${fmtFull(r.homeCapGainsTax)}`,
+    explain: 'Net proceeds after selling costs, paying off mortgage, and capital gains tax'
+  },
+  renterPortfolio: {
+    header: 'Renter Portfolio',
+    desc: 'Pre-tax investments',
+    tooltip: 'PrevPortfolio × (1 + investReturn%) + (BuyOutlay − Rent)',
+    formula: (r) => r.year === 1
+      ? `(DownPmt + ClosingCosts) × (1 + return%) + cashFlowDelta`
+      : `PrevPortfolio × (1 + return%) + cashFlowDelta`,
+    values: (r) => r.year === 1
+      ? `(${fmtFull(r._downPmt)} + ${fmtFull(r._closingCosts)}) × (1 + ${(r._investGrowth*100).toFixed(1)}%) + ${fmtFull(r.cashFlowDelta)}`
+      : `prev × (1 + ${(r._investGrowth*100).toFixed(1)}%) + ${fmtFull(r.cashFlowDelta)}`,
+    explain: 'What you\'d have if you invested the down payment, closing costs, and annual savings from renting'
+  },
+  cumInvested: {
+    header: 'Cum. Invested',
+    desc: 'Cost basis',
+    tooltip: 'DownPmt + ClosingCosts + Σ(BuyOutlay − Rent)',
+    formula: (r) => `DownPmt + ClosingCosts + Σ(cashFlowDelta)`,
+    values: (r) => `= ${fmtFull(r.cumInvested)}`,
+    explain: 'Total capital contributed (cost basis for capital gains calculation)'
+  },
+  renterExitTax: {
+    header: 'Renter Tax',
+    desc: 'Cap gains if liquidated',
+    tooltip: 'max(0, (Portfolio − CumInvested) × capGainsRate)',
+    formula: (r) => `max(0, (Portfolio − CostBasis) × capGainsRate)`,
+    values: (r) => `max(0, (${fmtFull(r.renterPortfolio)} − ${fmtFull(r.cumInvested)}) × ${(r._capGainsRate*100).toFixed(1)}%)`,
+    explain: 'Capital gains tax if the renter liquidated their portfolio today'
+  },
+  netRenterWealth: {
+    header: 'Net Renter',
+    desc: 'After-tax portfolio',
+    tooltip: 'Portfolio − RenterTax',
+    formula: (r) => `Portfolio − RenterTax`,
+    values: (r) => `${fmtFull(r.renterPortfolio)} − ${fmtFull(r.renterExitTax)}`,
+    explain: 'Renter\'s net wealth after liquidating investments and paying capital gains tax'
+  },
+  wealthDelta: {
+    header: 'Delta',
+    desc: 'Buy advantage',
+    tooltip: 'NetHouseWealth − NetRenterWealth',
+    formula: (r) => `NetHouseWealth − NetRenterWealth`,
+    values: (r) => `${fmtFull(r.netHouseWealth)} − ${fmtFull(r.netRenterWealth)}`,
+    explain: 'Positive = buying is ahead; negative = renting + investing is ahead'
+  }
+};
+
+const COL_ORDER = ['homeValue','mortBalance','interestPaid','taxShield','buyOutlay','annualRent',
+  'netHouseWealth','renterPortfolio','cumInvested','renterExitTax','netRenterWealth','wealthDelta'];
+
+// Cell detail toggle
+function toggleCellDetail(on) {
+  cellDetailMode = on;
+  if (!on) {
+    $('cellPopup').classList.remove('visible');
+  }
+}
+
+// Cell popup logic
+function showCellPopup(e) {
+  if (!cellDetailMode) return;
+  const td = e.target.closest('td[data-col]');
+  if (!td) { $('cellPopup').classList.remove('visible'); return; }
+
+  const col = td.getAttribute('data-col');
+  const yearIdx = parseInt(td.getAttribute('data-year'));
+  const profileId = td.getAttribute('data-profile');
+  const meta = COL_META[col];
+  if (!meta) return;
+
+  // Get the row data
+  const calc = _lastCalcs[profileId];
+  if (!calc) return;
+  const r = calc.rows[yearIdx];
+  if (!r) return;
+
+  const popup = $('cellPopup');
+  popup.innerHTML = `
+    <div class="popup-label">Formula</div>
+    <div class="popup-formula">${meta.formula(r)}</div>
+    <div class="popup-label">Values</div>
+    <div class="popup-values">${meta.values(r)}</div>
+    <div class="popup-result">= ${fmtFull(r[col])}</div>
+    <div class="popup-explain">${meta.explain}</div>
+  `;
+  popup.classList.add('visible');
+
+  // Position near the cell
+  const rect = td.getBoundingClientRect();
+  let left = rect.right + 8;
+  let top = rect.top;
+  // Keep on screen
+  if (left + 400 > window.innerWidth) left = rect.left - 400;
+  if (top + 200 > window.innerHeight) top = window.innerHeight - 210;
+  if (left < 0) left = 8;
+  if (top < 0) top = 8;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+}
+
+// Store last calculations for popup access
+let _lastCalcs = {};
+
+document.addEventListener('mouseover', showCellPopup);
+document.addEventListener('click', function(e) {
+  if (cellDetailMode && !e.target.closest('td[data-col]') && !e.target.closest('.cell-popup')) {
+    $('cellPopup').classList.remove('visible');
+  }
+});
+
+function renderComparison() {
+  renderCompareToggles();
+  const years = val('forecastYears');
+  const labels = Array.from({ length: years }, (_, i) => 'Year ' + (i + 1));
+  const datasets = [];
+  const allCalcs = {};
+
+  buyProfiles.forEach(p => {
+    allCalcs[p.id] = calcProfile(p);
+  });
+  _lastCalcs = allCalcs;
+
+  // Build chart datasets
+  activeProfiles.forEach(pid => {
+    const bp = buyProfiles.find(p => p.id === pid);
+    if (!bp || !allCalcs[pid]) return;
+    const calc = allCalcs[pid];
+
+    if (compareView === 'wealth_delta') {
+      datasets.push({
+        label: bp.name + ' (Buy - Rent)',
+        data: calc.rows.map(r => r.wealthDelta),
+        borderColor: bp.color,
+        backgroundColor: bp.color + '15',
+        fill: false, pointRadius: 2, borderWidth: 2.5, tension: 0.1
+      });
+    } else if (compareView === 'net_house') {
+      datasets.push({
+        label: bp.name + ' Net House Wealth',
+        data: calc.rows.map(r => r.netHouseWealth),
+        borderColor: bp.color,
+        fill: false, pointRadius: 2, borderWidth: 2, tension: 0.1
+      });
+    } else if (compareView === 'net_renter') {
+      datasets.push({
+        label: bp.name + ' Net Renter Wealth',
+        data: calc.rows.map(r => r.netRenterWealth),
+        borderColor: bp.renterColor,
+        fill: false, pointRadius: 2, borderWidth: 2, tension: 0.1
+      });
+    } else if (compareView === 'both') {
+      datasets.push({
+        label: bp.name + ' Buy',
+        data: calc.rows.map(r => r.netHouseWealth),
+        borderColor: bp.color,
+        fill: false, pointRadius: 2, borderWidth: 2, tension: 0.1
+      });
+      datasets.push({
+        label: bp.name + ' Rent+Invest',
+        data: calc.rows.map(r => r.netRenterWealth),
+        borderColor: bp.renterColor,
+        borderDash: [6, 3],
+        fill: false, pointRadius: 2, borderWidth: 2, tension: 0.1
+      });
+    } else if (compareView === 'monthly') {
+      datasets.push({
+        label: bp.name + ' Buy Monthly',
+        data: calc.rows.map(r => r.monthlyBuy),
+        borderColor: bp.color,
+        fill: false, pointRadius: 2, borderWidth: 2, tension: 0.1
+      });
+      datasets.push({
+        label: 'Rent Monthly',
+        data: calc.rows.map(r => r.monthlyRent),
+        borderColor: '#c0513f',
+        borderDash: [6, 3],
+        fill: false, pointRadius: 2, borderWidth: 2, tension: 0.1
+      });
+    }
+  });
+
+  // Add zero line for wealth delta
+  if (compareView === 'wealth_delta' && datasets.length > 0) {
+    datasets.push({
+      label: 'Breakeven',
+      data: Array(years).fill(0),
+      borderColor: '#8c7e6a',
+      borderDash: [4, 4],
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: false
+    });
+  }
+
+  if (charts.compare) charts.compare.destroy();
+  charts.compare = new Chart($('compareChart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#8c7e6a' } },
+        tooltip: {
+          callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtFull(ctx.raw) }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#8c7e6a' }, grid: { color: '#d4cab8' } },
+        y: { ticks: { color: '#8c7e6a', callback: v => fmt(v) }, grid: { color: '#d4cab8' } }
+      }
+    }
+  });
+
+  // Summary cards
+  let summaryHtml = '';
+  activeProfiles.forEach(pid => {
+    const bp = buyProfiles.find(p => p.id === pid);
+    if (!bp || !allCalcs[pid]) return;
+    const calc = allCalcs[pid];
+    const last = calc.rows[calc.rows.length - 1];
+
+    const beText = calc.breakevenYear
+      ? `<span class="breakeven-badge positive">Buy wins at Year ${calc.breakevenYear}</span>`
+      : `<span class="breakeven-badge negative">Rent wins for ${years}+ years</span>`;
+
+    summaryHtml += `
+      <div class="summary-card" style="border-top: 3px solid ${bp.color}">
+        <div class="label">${bp.name}</div>
+        <div class="value" style="color:${last.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
+          ${fmtFull(last.wealthDelta)}
+        </div>
+        <div class="sub">Wealth delta at Year ${years}</div>
+        <div style="margin-top:8px">${beText}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">${bp.name} Net House Wealth</div>
+        <div class="value" style="color:${bp.color}">${fmt(last.netHouseWealth)}</div>
+        <div class="sub">Home: ${fmt(last.homeValue)} | Mort: ${fmt(last.mortBalance)}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">${bp.name} Renter Portfolio</div>
+        <div class="value" style="color:${bp.renterColor}">${fmt(last.netRenterWealth)}</div>
+        <div class="sub">Pre-tax: ${fmt(last.renterPortfolio)} | Tax: ${fmt(last.renterExitTax)}</div>
+      </div>
+    `;
+  });
+  $('compareSummary').innerHTML = summaryHtml;
+
+  // Year-by-year table
+  const activeBPs = buyProfiles.filter(bp => activeProfiles.has(bp.id));
+
+  // Build header row with tooltips
+  let tHtml = '<thead>';
+  // Description row
+  tHtml += '<tr class="desc-row"><td></td>';
+  activeBPs.forEach(bp => {
+    COL_ORDER.forEach(col => {
+      tHtml += `<td>${COL_META[col].desc}</td>`;
+    });
+  });
+  tHtml += '</tr>';
+  // Main header row
+  tHtml += '<tr><th>Year</th>';
+  activeBPs.forEach(bp => {
+    COL_ORDER.forEach(col => {
+      const meta = COL_META[col];
+      const colorStyle = (col === 'homeValue' || col === 'netHouseWealth') ? ` style="color:${bp.color}"` :
+                         (col === 'renterPortfolio' || col === 'netRenterWealth') ? ` style="color:${bp.renterColor}"` : '';
+      tHtml += `<th class="has-tooltip"${colorStyle}>${meta.header}<span class="header-tooltip">${meta.tooltip}</span></th>`;
+    });
+  });
+  tHtml += '</tr></thead><tbody>';
+
+  for (let y = 0; y < years; y++) {
+    tHtml += `<tr><td><strong>${y + 1}</strong></td>`;
+    activeBPs.forEach(bp => {
+      const r = allCalcs[bp.id].rows[y];
+      COL_ORDER.forEach(col => {
+        const val = r[col];
+        const deltaClass = col === 'wealthDelta' ? (val >= 0 ? 'positive' : 'negative') : '';
+        const isBold = col === 'wealthDelta';
+        const cellContent = isBold ? `<strong>${fmtFull(val)}</strong>` : fmtFull(val);
+        tHtml += `<td class="${deltaClass}" data-col="${col}" data-year="${y}" data-profile="${bp.id}">${cellContent}</td>`;
+      });
+    });
+    tHtml += '</tr>';
+  }
+  $('compareTable').innerHTML = tHtml + '</tbody>';
+}
+
+// ========== SAVE / LOAD (LocalStorage) ==========
+const STORAGE_KEY = 'rentVsBuy_v1';
+
+function getGlobalSettings() {
+  return {
+    forecastYears: val('forecastYears'),
+    federalTaxRate: val('federalTaxRate'),
+    investReturn: val('investReturn'),
+    capGainsRate: val('capGainsRate'),
+    rentMonthly: val('rentMonthly'),
+    rentGrowth: val('rentGrowth'),
+    renterInsurance: val('renterInsurance'),
+  };
+}
+
+function setGlobalSettings(s) {
+  if (!s) return;
+  if (s.forecastYears != null) $('forecastYears').value = s.forecastYears;
+  if (s.federalTaxRate != null) $('federalTaxRate').value = s.federalTaxRate;
+  if (s.investReturn != null) $('investReturn').value = s.investReturn;
+  if (s.capGainsRate != null) $('capGainsRate').value = s.capGainsRate;
+  if (s.rentMonthly != null) $('rentMonthly').value = s.rentMonthly;
+  if (s.rentGrowth != null) $('rentGrowth').value = s.rentGrowth;
+  if (s.renterInsurance != null) $('renterInsurance').value = s.renterInsurance;
+}
+
+function saveToLocalStorage() {
+  try {
+    const data = {
+      global: getGlobalSettings(),
+      buyProfiles: buyProfiles.map(p => ({ ...p })),
+      profileCounter,
+      activeProfiles: [...activeProfiles],
+      compareView,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showSaveIndicator();
+  } catch (e) {
+    console.warn('Failed to save to localStorage:', e);
+  }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    applyLoadedData(data);
+    return true;
+  } catch (e) {
+    console.warn('Failed to load from localStorage:', e);
+    return false;
+  }
+}
+
+function applyLoadedData(data) {
+  if (data.global) setGlobalSettings(data.global);
+  if (data.buyProfiles) {
+    buyProfiles = data.buyProfiles;
+    // Migrate old dark-theme colors to new midcentury palette
+    buyProfiles.forEach((p, i) => {
+      if (!p.color) {
+        p.color = COLORS[i % COLORS.length];
+      } else {
+        const oldIdx = OLD_COLORS.indexOf(p.color);
+        if (oldIdx !== -1) p.color = COLORS[oldIdx % COLORS.length];
+      }
+      if (!p.renterColor) {
+        p.renterColor = RENTER_COLORS[i % RENTER_COLORS.length];
+      } else {
+        const oldIdx = OLD_RENTER_COLORS.indexOf(p.renterColor);
+        if (oldIdx !== -1) p.renterColor = RENTER_COLORS[oldIdx % RENTER_COLORS.length];
+      }
+    });
+  }
+  if (data.profileCounter != null) profileCounter = data.profileCounter;
+  if (data.activeProfiles) activeProfiles = new Set(data.activeProfiles);
+  if (data.compareView) compareView = data.compareView;
+}
+
+function showSaveIndicator() {
+  const el = $('saveIndicator');
+  const now = new Date();
+  el.textContent = 'Saved ' + now.toLocaleTimeString();
+  el.className = 'save-indicator saved';
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => { el.className = 'save-indicator'; }, 3000);
+}
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ========== EXPORT / IMPORT (JSON) ==========
+function exportJSON() {
+  const data = {
+    _format: 'rent-vs-buy-analysis',
+    _version: 1,
+    global: getGlobalSettings(),
+    buyProfiles: buyProfiles.map(p => ({ ...p })),
+    profileCounter,
+    activeProfiles: [...activeProfiles],
+    compareView,
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const timestamp = new Date().toISOString().slice(0, 10);
+  a.download = `rent-vs-buy-${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported to rent-vs-buy-' + timestamp + '.json');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.buyProfiles && !data.global) {
+        showToast('Invalid file format');
+        return;
+      }
+      applyLoadedData(data);
+      renderBuyProfiles();
+      recalcAll();
+      saveToLocalStorage();
+      showToast('Imported ' + (data.buyProfiles?.length || 0) + ' profile(s) from ' + file.name);
+    } catch (err) {
+      showToast('Error reading file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset so same file can be re-imported
+}
+
+function resetAll() {
+  if (!confirm('Reset all settings and profiles to defaults? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  buyProfiles = [];
+  profileCounter = 0;
+  activeProfiles = new Set();
+  compareView = 'wealth_delta';
+  // Reset global inputs to defaults
+  $('forecastYears').value = 30;
+  $('federalTaxRate').value = 37;
+  $('investReturn').value = 4;
+  $('capGainsRate').value = 38.6;
+  $('rentMonthly').value = 7050;
+  $('rentGrowth').value = 5;
+  $('renterInsurance').value = 0;
+  // Add one default profile
+  addBuyProfile();
+  recalcAll();
+  showToast('Reset to defaults');
+}
+
+// ========== MASTER RECALC ==========
+function recalcAll() {
+  renderRent();
+  renderComparison();
+  saveToLocalStorage();
+}
+
+// ========== INIT ==========
+if (!loadFromLocalStorage()) {
+  // No saved data — create one default profile
+  addBuyProfile();
+}
+renderBuyProfiles();
+recalcAll();
+</script>
+</body>
+</html>
