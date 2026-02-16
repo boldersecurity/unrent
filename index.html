@@ -45,6 +45,7 @@
     .app-header h1 { font-size: 20px; font-weight: 600; }
     .app-header .subtitle { font-size: 13px; color: var(--text-dim); }
     .header-controls { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .header-field { flex: 1; min-width: 100px; }
 
     .tab-bar {
       display: flex;
@@ -54,11 +55,11 @@
     }
     .tab-btn {
       background: none; border: none; color: var(--text-dim);
-      padding: 12px 20px; font-size: 14px; cursor: pointer;
-      border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: 500;
+      padding: 14px 24px; font-size: 15px; cursor: pointer;
+      border-bottom: 3px solid transparent; transition: all 0.2s; font-weight: 500;
     }
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover { color: var(--text); background: rgba(198,123,60,0.04); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; background: rgba(198,123,60,0.06); }
 
     .tab-content { display: none; padding: 24px; max-width: 1600px; margin: 0 auto; }
     .tab-content.active { display: block; }
@@ -86,7 +87,7 @@
       .header-controls .form-group { flex: 1; min-width: 0 !important; }
       .tab-bar { padding: 0 8px; flex-wrap: wrap; gap: 0; }
       .tab-bar > div:first-child { width: 100%; display: flex; }
-      .tab-btn { padding: 10px 12px; font-size: 13px; flex: 1; text-align: center; }
+      .tab-btn { padding: 12px 10px; font-size: 13px; flex: 1; text-align: center; }
       .save-bar { width: 100%; padding: 8px 4px !important; justify-content: flex-end; }
       .tab-content { padding: 12px; }
       .card { padding: 14px; }
@@ -171,7 +172,7 @@
     }
     .summary-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
     .summary-card .value { font-size: 22px; font-weight: 700; }
-    .summary-card .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+    .summary-card .sub { font-size: 12px; color: var(--text); margin-top: 4px; }
 
     .table-scroll { overflow-x: auto; max-height: 500px; overflow-y: auto; }
 
@@ -356,20 +357,22 @@
     <div class="subtitle">Compare renting + investing vs buying for each home scenario</div>
   </div>
   <div class="header-controls">
-    <div class="form-group" style="min-width:80px">
+    <div class="form-group header-field">
       <label># Years to Graph</label>
       <input type="number" id="forecastYears" value="30" min="1" max="50" onchange="recalcAll()">
+      <span class="unit">years</span>
     </div>
-    <div class="form-group" style="min-width:100px">
+    <div class="form-group header-field">
       <label>Federal Tax Rate</label>
       <input type="number" id="federalTaxRate" value="37" step="1" onchange="recalcAll()">
+      <span class="unit">%</span>
     </div>
-    <div class="form-group" style="min-width:110px">
+    <div class="form-group header-field">
       <label>Investment Return</label>
       <input type="number" id="investReturn" value="4" step="0.5" onchange="recalcAll()">
       <span class="unit">% / year</span>
     </div>
-    <div class="form-group" style="min-width:110px">
+    <div class="form-group header-field">
       <label>Cap Gains Rate</label>
       <input type="number" id="capGainsRate" value="38.6" step="0.5" onchange="recalcAll()">
       <span class="unit">% on investments</span>
@@ -983,7 +986,7 @@ function renderCompareToggles() {
   let html = '';
   buyProfiles.forEach(p => {
     const active = activeProfiles.has(p.id);
-    html += `<button class="toggle-btn ${active ? 'active' : ''}" onclick="toggleProfile('${p.id}')" style="${active ? `border-color:${p.color};color:${p.color};background:${p.color}15` : ''}"><span class="color-dot" style="background:${p.color}"></span>${p.name}</button>`;
+    html += `<button class="toggle-btn ${active ? 'active' : ''}" onclick="toggleProfile('${p.id}')" style="${active ? `border-color:${p.color};color:${p.color};background:${p.color}14` : ''}"><span class="color-dot" style="background:${p.color}"></span>${p.name}</button>`;
   });
   if (buyProfiles.length === 0) {
     html = '<span class="info-text">Add buy profiles first to see comparisons.</span>';
@@ -1323,7 +1326,7 @@ function renderComparison() {
     for (let i = 0; i <= yr10Idx; i++) cumInterest10 += calc.rows[i].interestPaid;
 
     summaryHtml += `
-      <div class="summary-card" style="border-top: 3px solid ${bp.color}">
+      <div class="summary-card" style="background:${bp.color}14;border-left:4px solid ${bp.color}">
         <div class="label" style="color:${bp.color};font-size:13px;font-weight:700">${bp.name}</div>
         <div class="value" style="color:${last.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
           ${fmtFull(last.wealthDelta)}
@@ -1331,14 +1334,14 @@ function renderComparison() {
         <div class="sub">Wealth delta at Year ${years}</div>
         <div style="margin-top:8px">${beText}</div>
       </div>
-      <div class="summary-card" style="border-top: 3px solid ${bp.color}">
+      <div class="summary-card" style="background:${bp.color}14;border-left:4px solid ${bp.color}">
         <div class="label" style="color:${bp.color};font-size:13px;font-weight:700">${bp.name}</div>
         <div class="value" style="color:${yr10Row.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
           ${fmtFull(yr10Row.wealthDelta)}
         </div>
         <div class="sub">Wealth delta at Year ${yr10Label}</div>
       </div>
-      <div class="summary-card" style="border-top: 3px solid ${bp.color}">
+      <div class="summary-card" style="background:${bp.color}14;border-left:4px solid ${bp.color}">
         <div class="label" style="color:${bp.color};font-size:13px;font-weight:700">${bp.name}</div>
         <div class="value" style="color:var(--red)">
           ${fmtFull(cumInterest10)}
@@ -1357,19 +1360,21 @@ function renderComparison() {
   // Description row
   tHtml += '<tr class="desc-row"><td></td>';
   activeBPs.forEach(bp => {
-    COL_ORDER.forEach(col => {
-      tHtml += `<td>${COL_META[col].desc}</td>`;
+    COL_ORDER.forEach((col, ci) => {
+      const borderLeft = ci === 0 ? `border-left:2px solid ${bp.color};` : '';
+      tHtml += `<td style="${borderLeft}background:${bp.color}0a">${COL_META[col].desc}</td>`;
     });
   });
   tHtml += '</tr>';
   // Main header row
   tHtml += '<tr><th>Year</th>';
   activeBPs.forEach(bp => {
-    COL_ORDER.forEach(col => {
+    COL_ORDER.forEach((col, ci) => {
       const meta = COL_META[col];
-      const colorStyle = (col === 'homeValue' || col === 'netHouseWealth') ? ` style="color:${bp.color}"` :
-                         (col === 'renterPortfolio' || col === 'netRenterWealth') ? ` style="color:${bp.renterColor}"` : '';
-      tHtml += `<th class="has-tooltip"${colorStyle}>${meta.header}<span class="header-tooltip">${meta.tooltip}</span></th>`;
+      const textColor = (col === 'homeValue' || col === 'netHouseWealth') ? `color:${bp.color};` :
+                        (col === 'renterPortfolio' || col === 'netRenterWealth') ? `color:${bp.renterColor};` : '';
+      const borderLeft = ci === 0 ? `border-left:2px solid ${bp.color};` : '';
+      tHtml += `<th class="has-tooltip" style="${borderLeft}background:${bp.color}12;${textColor}">${meta.header}<span class="header-tooltip">${meta.tooltip}</span></th>`;
     });
   });
   tHtml += '</tr></thead><tbody>';
@@ -1378,12 +1383,13 @@ function renderComparison() {
     tHtml += `<tr><td><strong>${y + 1}</strong></td>`;
     activeBPs.forEach(bp => {
       const r = allCalcs[bp.id].rows[y];
-      COL_ORDER.forEach(col => {
+      COL_ORDER.forEach((col, ci) => {
         const val = r[col];
         const deltaClass = col === 'wealthDelta' ? (val >= 0 ? 'positive' : 'negative') : '';
         const isBold = col === 'wealthDelta';
         const cellContent = isBold ? `<strong>${fmtFull(val)}</strong>` : fmtFull(val);
-        tHtml += `<td class="${deltaClass}" data-col="${col}" data-year="${y}" data-profile="${bp.id}">${cellContent}</td>`;
+        const borderLeft = ci === 0 ? `border-left:2px solid ${bp.color};` : '';
+        tHtml += `<td class="${deltaClass}" style="${borderLeft}background:${bp.color}06" data-col="${col}" data-year="${y}" data-profile="${bp.id}">${cellContent}</td>`;
       });
     });
     tHtml += '</tr>';
