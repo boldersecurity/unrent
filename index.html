@@ -183,7 +183,7 @@
       background: var(--surface2); border: 1px solid var(--border);
       color: var(--text-dim); cursor: pointer; transition: all 0.2s;
     }
-    .toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(198,123,60,0.1); }
+    .toggle-btn.active { font-weight: 600; }
 
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
     .empty-state h3 { margin-bottom: 8px; color: var(--text); }
@@ -955,7 +955,14 @@ function calcProfile(p) {
       _deductionCap: deductionCap,
       _fedTaxRate: fedTaxRate,
       _investGrowth: investGrowth,
-      _appreciation: p.homeAppreciation / 100
+      _appreciation: p.homeAppreciation / 100,
+      _monthlyRate: monthlyRate,
+      _monthlyPI: monthlyPI,
+      _totalPayments: totalPayments,
+      _loanAmount: loanAmount,
+      _rentMonthly: val('rentMonthly'),
+      _rentGrowth: val('rentGrowth') / 100,
+      _renterInsurance: val('renterInsurance')
     });
   }
 
@@ -976,7 +983,7 @@ function renderCompareToggles() {
   let html = '';
   buyProfiles.forEach(p => {
     const active = activeProfiles.has(p.id);
-    html += `<button class="toggle-btn ${active ? 'active' : ''}" onclick="toggleProfile('${p.id}')" style="border-color:${active ? p.color : ''}"><span class="color-dot" style="background:${p.color}"></span>${p.name}</button>`;
+    html += `<button class="toggle-btn ${active ? 'active' : ''}" onclick="toggleProfile('${p.id}')" style="${active ? `border-color:${p.color};color:${p.color};background:${p.color}15` : ''}"><span class="color-dot" style="background:${p.color}"></span>${p.name}</button>`;
   });
   if (buyProfiles.length === 0) {
     html = '<span class="info-text">Add buy profiles first to see comparisons.</span>';
@@ -1012,7 +1019,7 @@ const COL_META = {
     desc: 'Remaining loan',
     tooltip: 'PV(rate, remainingMonths, -PMT)',
     formula: (r) => `PV(monthlyRate, remainingMonths, -monthlyPMT)`,
-    values: (r) => `PV of ${fmtFull(r.mortBalance)} remaining`,
+    values: (r) => { const rem = Math.max(0, r._totalPayments - r.year * 12); return `PMT = ${fmtFull(r._monthlyPI)}/mo, rate = ${(r._monthlyRate*100).toFixed(4)}%/mo, ${rem} months remaining`; },
     explain: 'Outstanding mortgage principal — what you still owe the bank'
   },
   interestPaid: {
@@ -1020,7 +1027,7 @@ const COL_META = {
     desc: 'Interest this year',
     tooltip: 'CUMIPMT(rate, nper, pv, startMonth, endMonth)',
     formula: (r) => `Sum of monthly interest for months ${(r.year-1)*12+1}–${r.year*12}`,
-    values: (r) => `= ${fmtFull(r.interestPaid)}`,
+    values: (r) => { const s = (r.year-1)*12+1; const e = Math.min(r.year*12, r._totalPayments); return `Months ${s}–${e}, rate = ${(r._monthlyRate*100).toFixed(4)}%/mo, loan = ${fmtFull(r._loanAmount)}`; },
     explain: 'Total mortgage interest paid during this year'
   },
   taxShield: {
@@ -1044,7 +1051,7 @@ const COL_META = {
     desc: 'Rent + insurance',
     tooltip: 'MonthlyRent × (1 + growth%)^(year-1) × 12 + Insurance',
     formula: (r) => `Monthly × (1 + growth%)^(year−1) × 12 + Insurance`,
-    values: (r) => `= ${fmtFull(r.annualRent)}`,
+    values: (r) => `${fmtFull(r._rentMonthly)} × (1 + ${(r._rentGrowth*100).toFixed(1)}%)^${r.year-1} × 12 + ${fmtFull(r._renterInsurance * 12)}`,
     explain: 'Total annual rent plus renter\'s insurance'
   },
   netHouseWealth: {
@@ -1072,7 +1079,7 @@ const COL_META = {
     desc: 'Cost basis',
     tooltip: 'DownPmt + ClosingCosts + Σ(BuyOutlay − Rent)',
     formula: (r) => `DownPmt + ClosingCosts + Σ(cashFlowDelta)`,
-    values: (r) => `= ${fmtFull(r.cumInvested)}`,
+    values: (r) => `${fmtFull(r._downPmt)} + ${fmtFull(r._closingCosts)} + Σ cashFlowDeltas = ${fmtFull(r.cumInvested)}`,
     explain: 'Total capital contributed (cost basis for capital gains calculation)'
   },
   renterExitTax: {
@@ -1143,24 +1150,50 @@ function showCellPopup(e) {
 
   // Position near the cell
   const rect = td.getBoundingClientRect();
-  let left = rect.right + 8;
-  let top = rect.top;
-  // Keep on screen
-  if (left + 400 > window.innerWidth) left = rect.left - 400;
-  if (top + 200 > window.innerHeight) top = window.innerHeight - 210;
-  if (left < 0) left = 8;
-  if (top < 0) top = 8;
-  popup.style.left = left + 'px';
-  popup.style.top = top + 'px';
+  if (window.innerWidth < 600) {
+    // Mobile: center horizontally, position near top
+    popup.style.left = Math.max(8, (window.innerWidth - 300) / 2) + 'px';
+    popup.style.top = Math.max(8, rect.top - 180) + 'px';
+    if (rect.top - 180 < 8) popup.style.top = (rect.bottom + 8) + 'px';
+  } else {
+    let left = rect.right + 8;
+    let top = rect.top;
+    if (left + 400 > window.innerWidth) left = rect.left - 400;
+    if (top + 200 > window.innerHeight) top = window.innerHeight - 210;
+    if (left < 0) left = 8;
+    if (top < 0) top = 8;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+  }
 }
 
 // Store last calculations for popup access
 let _lastCalcs = {};
+let _pinnedCell = null;
 
-document.addEventListener('mouseover', showCellPopup);
+// Desktop: mouseover for hover (skip on touch devices)
+document.addEventListener('mouseover', function(e) {
+  if (!cellDetailMode || 'ontouchstart' in window) return;
+  showCellPopup(e);
+});
+
+// Click/tap: works on both desktop and mobile
 document.addEventListener('click', function(e) {
-  if (cellDetailMode && !e.target.closest('td[data-col]') && !e.target.closest('.cell-popup')) {
+  if (!cellDetailMode) return;
+  const td = e.target.closest('td[data-col]');
+  if (td) {
+    if (_pinnedCell === td) {
+      // Tap same cell again — dismiss
+      $('cellPopup').classList.remove('visible');
+      _pinnedCell = null;
+    } else {
+      _pinnedCell = td;
+      showCellPopup(e);
+    }
+  } else if (!e.target.closest('.cell-popup')) {
+    // Tap outside cell and popup — dismiss
     $('cellPopup').classList.remove('visible');
+    _pinnedCell = null;
   }
 });
 
@@ -1291,7 +1324,7 @@ function renderComparison() {
 
     summaryHtml += `
       <div class="summary-card" style="border-top: 3px solid ${bp.color}">
-        <div class="label">${bp.name} at Year ${years}</div>
+        <div class="label" style="color:${bp.color};font-size:13px;font-weight:700">${bp.name}</div>
         <div class="value" style="color:${last.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
           ${fmtFull(last.wealthDelta)}
         </div>
@@ -1299,18 +1332,18 @@ function renderComparison() {
         <div style="margin-top:8px">${beText}</div>
       </div>
       <div class="summary-card" style="border-top: 3px solid ${bp.color}">
-        <div class="label">${bp.name} at Year ${yr10Label}</div>
+        <div class="label" style="color:${bp.color};font-size:13px;font-weight:700">${bp.name}</div>
         <div class="value" style="color:${yr10Row.wealthDelta >= 0 ? 'var(--green)' : 'var(--red)'}">
           ${fmtFull(yr10Row.wealthDelta)}
         </div>
         <div class="sub">Wealth delta at Year ${yr10Label}</div>
       </div>
       <div class="summary-card" style="border-top: 3px solid ${bp.color}">
-        <div class="label">${bp.name} Cumulative Interest</div>
+        <div class="label" style="color:${bp.color};font-size:13px;font-weight:700">${bp.name}</div>
         <div class="value" style="color:var(--red)">
           ${fmtFull(cumInterest10)}
         </div>
-        <div class="sub">Interest paid through Year ${yr10Label}</div>
+        <div class="sub">Cumulative interest through Year ${yr10Label}</div>
       </div>
     `;
   });
